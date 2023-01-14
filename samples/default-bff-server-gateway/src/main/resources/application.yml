@@ -1,0 +1,80 @@
+server:
+  port: 9002
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          sample:
+            client-name: sample-spa-bff
+            clientId: 8e7700e2-6542-4880-85cb-5484024e8758
+            clientSecret: 7480eadafd9e6904c67801c98addd67398271d1c2be219befc5e409720476b50
+            redirectUri: "{baseUrl}/oauth2/callback/{registrationId}"
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_basic
+            scope:
+              - profile
+        provider:
+          sample:
+            authorization-uri: http://localhost:9000/oauth2/authorize
+            token-uri: http://localhost:9000/oauth2/token
+            jwk-set-uri: http://localhost:9000/oauth2/jwks
+            user-info-uri: http://localhost:9000/oauth2/introspect
+            user-name-attribute: sub
+            user-info-authentication-method: form
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate.temp.use_jdbc_metadata_defaults: false
+      hibernate:
+        format_sql: true
+    show-sql: true
+  cloud:
+    gateway:
+      metrics:
+        enabled: true
+  rsocket:
+    server:
+      port: 7878
+      mapping-path: /rsocket
+      transport: websocket
+      ssl:
+        enabled: false
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/sample-authorization
+    username: admin
+    password: admin
+  liquibase:
+    change-log: classpath:/db/liquibase-changelog.xml
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  endpoint:
+    health:
+      probes:
+        enabled: true
+    gateway:
+      enabled: true
+logging:
+  level:
+    root: INFO
+    org:
+      springframework:
+        cloud:
+          gateway: DEBUG
+          sleuth: DEBUG
+        web: DEBUG
+        security: DEBUG
+        boot:
+#          autoconfigure: DEBUG
+
+
