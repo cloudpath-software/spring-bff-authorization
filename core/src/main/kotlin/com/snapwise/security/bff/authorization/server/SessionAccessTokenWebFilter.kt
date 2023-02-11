@@ -44,13 +44,13 @@ import java.nio.charset.StandardCharsets
 
 class SessionAccessTokenWebFilter(
     private val userSessionService: UserSessionService,
-    userSessionAccessTokenEndpointUri: String = DEFAULT_USER_SESSION_ACCESS_TOKEN_ENDPOINT_URI
+    endpointUri: String = DEFAULT_USER_SESSION_ACCESS_TOKEN_ENDPOINT_URI
 ): WebFilter {
 
     private val logger = LogFactory.getLog(javaClass)
 
-    private val userSessionAccessTokenEndpointMatcher: ServerWebExchangeMatcher =
-        PathPatternParserServerWebExchangeMatcher(userSessionAccessTokenEndpointUri)
+    private val endpointMatcher: ServerWebExchangeMatcher =
+        PathPatternParserServerWebExchangeMatcher(endpointUri)
 
     private var authenticationEntryPoint: ServerAuthenticationEntryPoint = HttpBasicServerAuthenticationEntryPoint()
 
@@ -70,33 +70,35 @@ class SessionAccessTokenWebFilter(
     private val requiresAuthenticationMatcher = ServerWebExchangeMatchers.anyExchange()
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
-        return userSessionAccessTokenEndpointMatcher.matches(exchange).flatMap {
-            logger.info("filter called -> $this")
+        return endpointMatcher.matches(exchange).flatMap { matchResult ->
+            if(matchResult.isMatch) {
+                val serverHttpRequest = exchange.request
+                val serverHttpResponse = exchange.response
 
-            val serverHttpRequest = exchange.request
-            val serverHttpResponse = exchange.response
+                val userSessionCookie = ReactiveWebUtils.getHttpCookie(serverHttpRequest, DEFAULT_USER_SESSION_TOKEN_COOKIE_NAME)
+                val userSession = userSessionCookie?.let { userSessionService.findBySessionId(it.value) }
 
-            val userSessionCookie = ReactiveWebUtils.getHttpCookie(serverHttpRequest, DEFAULT_USER_SESSION_TOKEN_COOKIE_NAME)
-            val userSession = userSessionCookie?.let { userSessionService.findBySessionId(it.value) }
+                if(userSession != null) {
+                    val userSessionAccessToken = userSession.accessToken
 
-            if(userSession != null) {
-                val userSessionAccessToken = userSession.accessToken
+                    serverHttpResponse.statusCode = HttpStatus.OK
+                    serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
 
-                serverHttpResponse.statusCode = HttpStatus.OK
-                serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
+                    val dataBuffer: DataBuffer = DefaultDataBufferFactory().wrap(
+                        userSessionAccessToken.toByteArray(StandardCharsets.UTF_8))
 
-                val dataBuffer: DataBuffer = DefaultDataBufferFactory().wrap(
-                    userSessionAccessToken.toByteArray(StandardCharsets.UTF_8))
+                    serverHttpResponse.headers.accessControlAllowOrigin = "http://127.0.0.1:3004"
+                    serverHttpResponse.headers.accessControlAllowCredentials = true
 
-                serverHttpResponse.headers.accessControlAllowOrigin = "http://127.0.0.1:3004"
-                serverHttpResponse.headers.accessControlAllowCredentials = true
+                    serverHttpResponse.writeWith(Mono.just(dataBuffer))
+                } else {
+                    serverHttpResponse.statusCode = HttpStatus.FORBIDDEN
+                    serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
 
-                serverHttpResponse.writeWith(Mono.just(dataBuffer))
+                    serverHttpResponse.writeWith(Mono.empty())
+                }
             } else {
-                serverHttpResponse.statusCode = HttpStatus.FORBIDDEN
-                serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
-
-                serverHttpResponse.writeWith(Mono.empty())
+                chain.filter(exchange)
             }
         }
     }

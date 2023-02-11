@@ -18,6 +18,7 @@
 
 package com.snapwise.security.bff.authorization.config.annotation.reactive.specs
 
+import com.snapwise.security.bff.authorization.UserSessionService
 import com.snapwise.security.bff.authorization.config.annotation.reactive.configurers.AbstractServerConfigurer
 import com.snapwise.security.bff.authorization.server.SessionInfoWebFilter
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder
@@ -32,8 +33,12 @@ class SessionInfoSpec(private val configurer: AbstractServerConfigurer): Abstrac
 
     private var securityContextRepository: ServerSecurityContextRepository? = null
     private val authenticationConverter: ServerAuthenticationConverter? = null
+
+    private var userSessionService: UserSessionService? = null
+
     override var requestMatcher: ServerWebExchangeMatcher = PathPatternParserServerWebExchangeMatcher("/bff/oauth2/session-info")
         private set
+
 
     /**
      * The [ServerSecurityContextRepository] used to save the
@@ -60,8 +65,22 @@ class SessionInfoSpec(private val configurer: AbstractServerConfigurer): Abstrac
         return this
     }
 
+    /**
+     * Sets the [UserSessionService] used to retrieve the access token linked
+     * to a user session id.
+     * @param userSessionService the [UserSessionService] used
+     * for determining if the request is an authentication request
+     * @return the [SessionAccessTokenSpec] for further configuration
+     */
+    fun withUserSessionService(userSessionService: UserSessionService): SessionInfoSpec {
+        this.userSessionService = userSessionService
+        return this
+    }
+
     override fun init(httpSecurity: ServerHttpSecurity) {
-        val sessionInfoWebFilter = SessionInfoWebFilter()
+        val userSessionService  = this.userSessionService ?: return
+
+        val sessionInfoWebFilter = SessionInfoWebFilter(userSessionService)
 
         val securityContextRepository = this.securityContextRepository
         if(securityContextRepository != null) {

@@ -44,6 +44,9 @@ class BffAuthorizationConfig {
             .sessionAccessToken {
                 it.withUserSessionService(userSessionService)
             }
+            .sessionInfo {
+                it.withUserSessionService(userSessionService)
+            }
             .build()
     }
 

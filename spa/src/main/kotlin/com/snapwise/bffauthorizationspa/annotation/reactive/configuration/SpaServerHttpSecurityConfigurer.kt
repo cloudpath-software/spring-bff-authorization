@@ -48,37 +48,11 @@ class SpaServerHttpSecurityConfigurer(private val httpSecurity: ServerHttpSecuri
         return this
     }
 
-    private fun createSpecs(): MutableMap<Class<out AbstractBffServerSpec>, AbstractBffServerSpec> {
-        val configurers: MutableMap<Class<out AbstractBffServerSpec>, AbstractBffServerSpec> = LinkedHashMap()
-
-//        configurers[TokenEndpointConfigurer::class.java] = TokenEndpointConfigurer(postProcess)
-        configurers[SessionInfoSpec::class.java] = FormLoginSpec(this)
-//        configurers[SessionEndEndpointConfigurer::class.java] = SessionEndEndpointConfigurer(postProcess)
-
-        return configurers
-    }
-
     /**
      * Creates a new instance.
      * @return the new [SpaServerHttpSecurityConfigurer] instance
      */
     override fun http(): SpaServerHttpSecurityConfigurer {
         return SpaServerHttpSecurityConfigurer(httpSecurity)
-    }
-
-    /**
-     * Builds the [SecurityWebFilterChain]
-     * @return the [SecurityWebFilterChain]
-     */
-    override fun build(): SecurityWebFilterChain {
-        return super.build()
-//        val requestMatchers: MutableList<ServerWebExchangeMatcher> = mutableListOf()
-//
-//        specs.values.forEach { configurer: AbstractBffServerSpec ->
-//            configurer.init(http)
-//            requestMatchers.add(configurer.requestMatcher)
-//        }
-
-//        endpointsMatcher = OrServerWebExchangeMatcher(requestMatchers)
     }
 }

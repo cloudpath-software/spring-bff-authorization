@@ -33,15 +33,13 @@ import org.springframework.security.web.util.matcher.RequestMatcher
 open class CoreServerHttpSecurityConfigurer(private val httpSecurity: ServerHttpSecurity): AbstractServerConfigurer() {
     private var endpointsMatcher: ServerWebExchangeMatcher? = null
 
-    private val specs: MutableMap<Class<out AbstractBffServerSpec>, AbstractBffServerSpec> = mutableMapOf()
-
     private var authenticationManager: ReactiveAuthenticationManager? = null
 
-    private var sessionAccessToken: SessionAccessTokenSpec? = null
+    private var sessionAccessTokenSpec: SessionAccessTokenSpec? = null
 
-    private var sessionInfo: SessionInfoSpec? = null
+    private var sessionInfoSpec: SessionInfoSpec? = null
 
-    private var sessionEnd: SessionEndSpec? = null
+    private var sessionEndSpec: SessionEndSpec? = null
 
     /**
      * Returns a [RequestMatcher] for the authorization server endpoints.
@@ -60,30 +58,27 @@ open class CoreServerHttpSecurityConfigurer(private val httpSecurity: ServerHttp
      * [SessionInfoSpec]
      * @return the [CoreServerHttpSecurityConfigurer] to customize
      */
-    fun sessionInfo(customizer: Customizer<SessionInfoSpec>): CoreServerHttpSecurityConfigurer {
-        if (this.sessionInfo == null) {
-            this.sessionInfo = SessionInfoSpec(this)
+    fun sessionInfo(customizer: Customizer<SessionInfoSpec>? = null): CoreServerHttpSecurityConfigurer {
+        if (this.sessionInfoSpec == null) {
+            this.sessionInfoSpec = SessionInfoSpec(this)
         }
-        customizer.customize(this.sessionInfo)
+        customizer?.customize(this.sessionInfoSpec)
         return this
     }
 
     fun sessionEnd(customizer: Customizer<SessionEndSpec>): CoreServerHttpSecurityConfigurer {
-        if (this.sessionEnd == null) {
-            this.sessionEnd = SessionEndSpec(this)
+        if (this.sessionEndSpec == null) {
+            this.sessionEndSpec = SessionEndSpec(this)
         }
-        customizer.customize(this.sessionEnd)
+        customizer.customize(this.sessionEndSpec)
         return this
     }
 
     fun sessionAccessToken(customizer: Customizer<SessionAccessTokenSpec>): CoreServerHttpSecurityConfigurer {
-        if (this.sessionAccessToken == null) {
-           this.sessionAccessToken = SessionAccessTokenSpec(this)
+        if (this.sessionAccessTokenSpec == null) {
+           this.sessionAccessTokenSpec = SessionAccessTokenSpec(this)
         }
-
-        customizer.customize(this.sessionAccessToken)
-        specs[SessionAccessTokenSpec::class.java] =  this.sessionAccessToken!!
-
+        customizer.customize(this.sessionAccessTokenSpec)
         return this
     }
 
@@ -97,15 +92,26 @@ open class CoreServerHttpSecurityConfigurer(private val httpSecurity: ServerHttp
         return this
     }
 
-//    private fun createSpecs(): MutableMap<Class<out AbstractBffServerSpec>, AbstractBffServerSpec> {
-//        val configurers: MutableMap<Class<out AbstractBffServerSpec>, AbstractBffServerSpec> = LinkedHashMap()
-//
-//        configurers[SessionAccessTokenSpec::class.java] = SessionAccessTokenSpec(this)
-//        configurers[SessionInfoSpec::class.java] = SessionInfoSpec(this)
-//        configurers[SessionEndSpec::class.java] = SessionEndSpec(this)
-//
-//        return configurers
-//    }
+    private fun getSpecs(): MutableMap<Class<out AbstractBffServerSpec>, AbstractBffServerSpec> {
+        val configurers: MutableMap<Class<out AbstractBffServerSpec>, AbstractBffServerSpec> = LinkedHashMap()
+
+        val sessionAccessTokenSpec = this.sessionAccessTokenSpec
+        if(sessionAccessTokenSpec != null) {
+            configurers[SessionAccessTokenSpec::class.java] = sessionAccessTokenSpec
+        }
+
+        val sessionInfoSpec = this.sessionInfoSpec
+        if(sessionInfoSpec != null) {
+            configurers[SessionInfoSpec::class.java] = sessionInfoSpec
+        }
+
+        val sessionEndSpec = this.sessionEndSpec
+        if(sessionEndSpec != null) {
+            configurers[SessionEndSpec::class.java] = sessionEndSpec
+        }
+
+        return configurers
+    }
 
     /**
      * Creates a new instance.
@@ -130,6 +136,7 @@ open class CoreServerHttpSecurityConfigurer(private val httpSecurity: ServerHttp
     open fun build(): SecurityWebFilterChain {
         val requestMatchers: MutableList<ServerWebExchangeMatcher> = mutableListOf()
 
+        val specs = getSpecs()
         specs.values.forEach { configurer: AbstractBffServerSpec ->
             configurer.init(httpSecurity)
             requestMatchers.add(configurer.requestMatcher)

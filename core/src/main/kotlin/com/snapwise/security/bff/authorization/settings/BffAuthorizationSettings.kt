@@ -18,8 +18,6 @@
 
 package com.snapwise.security.bff.authorization.settings
 
-import com.snapwise.security.bff.authorization.SessionEndEndpointFilter
-import com.snapwise.security.bff.authorization.SessionInfoEndpointFilter
 import com.snapwise.security.bff.authorization.TokenEndpointFilter
 import com.snapwise.security.bff.authorization.server.SessionAccessTokenWebFilter
 import com.snapwise.security.bff.authorization.server.SessionEndWebFilter
