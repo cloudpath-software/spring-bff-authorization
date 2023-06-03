@@ -1,18 +1,18 @@
 package sample.services.oauth2
 
-import com.snapwise.security.bff.authorization.oauth2.services.OAuth2TokenService
+import com.snapwise.security.bff.authorization.oauth2.services.SessionOAuth2TokenService
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import sample.clients.AuthorizationServiceClient
 
 @Service
-class OAuth2TokenRestService(
+class SessionOAuth2TokenRestService(
     private val authorizationServiceClient: AuthorizationServiceClient
-): OAuth2TokenService {
-    override fun getAccessTokenWithRefresh(refreshToken: String): Mono<LinkedHashMap<*,*>> {
+): SessionOAuth2TokenService {
+    override fun refreshSessionAccessToken(sessionId: String): Mono<String> {
         return authorizationServiceClient
-            .getAccessTokenWithRefresh(refreshToken)
-            .cast(LinkedHashMap::class.java)
+            .getAccessTokenWithRefresh(sessionId)
+            .cast(String::class.java)
     }
 
     override fun introspectToken(token: String): Mono<LinkedHashMap<*,*>> {

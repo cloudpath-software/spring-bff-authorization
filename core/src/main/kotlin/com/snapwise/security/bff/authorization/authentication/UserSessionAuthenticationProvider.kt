@@ -63,7 +63,7 @@ class UserSessionAuthenticationProvider(
         if (logger.isTraceEnabled) {
             logger.trace("Retrieved registered client")
         }
-        var authorization = userSessionService.findBySessionId(userSessionTokenAuthentication.getToken())
+        var authorization = userSessionService.findById(userSessionTokenAuthentication.getToken())
             ?: throw OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_GRANT)
         if (logger.isTraceEnabled) {
             logger.trace("Retrieved authorization with refresh token")
@@ -74,7 +74,7 @@ class UserSessionAuthenticationProvider(
 //        if (!registeredClient.authorizationGrantTypes.contains(AuthorizationGrantType.REFRESH_TOKEN)) {
 //            throw OAuth2AuthenticationException(OAuth2ErrorCodes.UNAUTHORIZED_CLIENT)
 //        }
-        val refreshToken = authorization.refreshToken
+//        val refreshToken = authorization.refreshToken
 //        if (!refreshToken.isActive) {
 //            // As per https://tools.ietf.org/html/rfc6749#section-5.2
 //            // invalid_grant: The provided authorization grant (e.g., authorization code,
@@ -160,7 +160,7 @@ class UserSessionAuthenticationProvider(
 
 
 //        authorization = authorizationBuilder.build()
-        userSessionService.save(authorization)
+//        userSessionService.save(authorization)
         if (logger.isTraceEnabled) {
             logger.trace("Saved user session")
         }

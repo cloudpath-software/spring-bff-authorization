@@ -25,6 +25,7 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationCode
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType
 import org.springframework.util.Assert
+import reactor.core.publisher.Mono
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
@@ -107,9 +108,11 @@ class InMemoryUserSessionService : UserSessionService {
         }
     }
 
-    override fun findBySessionId(sessionId: String): UserSession? {
-        val userSession = sessions[sessionId]
-        return userSession ?: initializedAuthorizations[sessionId]
+    override fun findById(id: String): Mono<UserSession?> {
+        return Mono.fromCallable {
+            val userSession = sessions[id]
+            userSession ?: initializedAuthorizations[id]
+        }
     }
 
     override fun findBy(userId: String, resource: String, scopes: Set<String>): UserSession? {

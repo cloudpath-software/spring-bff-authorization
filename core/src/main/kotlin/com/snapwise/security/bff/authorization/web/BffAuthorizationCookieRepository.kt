@@ -15,7 +15,7 @@ import java.util.*
  */
 class BffAuthorizationCookieRepository: UserSessionTokenRepository {
     companion object {
-        const val DEFAULT_USER_SESSION_TOKEN_COOKIE_NAME = "US-TOKEN"
+        const val DEFAULT_USER_SESSION_TOKEN_COOKIE_NAME = "cloud.session.token"
         private const val DEFAULT_BFF_UST_PARAMETER_NAME = "_ust"
         const val DEFAULT_USER_SESSION_TOKEN_HEADER_NAME = "X-US-TOKEN"
         private val USER_SESSION_TOKEN_REMOVED_ATTRIBUTE_NAME = "${Companion::class.java.name}.REMOVED"

@@ -24,6 +24,7 @@ import com.snapwise.security.bff.authorization.web.BffAuthorizationCookieReposit
 import org.apache.commons.logging.LogFactory
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DefaultDataBufferFactory
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.ReactiveAuthenticationManagerResolver
@@ -50,7 +51,7 @@ class SessionAccessTokenWebFilter(
     private val logger = LogFactory.getLog(javaClass)
 
     private val endpointMatcher: ServerWebExchangeMatcher =
-        PathPatternParserServerWebExchangeMatcher(endpointUri)
+        PathPatternParserServerWebExchangeMatcher(endpointUri, HttpMethod.GET)
 
     private var authenticationEntryPoint: ServerAuthenticationEntryPoint = HttpBasicServerAuthenticationEntryPoint()
 
@@ -76,26 +77,25 @@ class SessionAccessTokenWebFilter(
                 val serverHttpResponse = exchange.response
 
                 val userSessionCookie = ReactiveWebUtils.getHttpCookie(serverHttpRequest, DEFAULT_USER_SESSION_TOKEN_COOKIE_NAME)
-                val userSession = userSessionCookie?.let { userSessionService.findBySessionId(it.value) }
+                    ?: return@flatMap Mono.error(Exception())
 
-                if(userSession != null) {
-                    val userSessionAccessToken = userSession.accessToken
+                userSessionService.findById(userSessionCookie.value).flatMap { userSession ->
+                    if(userSession != null) {
+                        val userSessionAccessToken = userSession.accessToken
 
-                    serverHttpResponse.statusCode = HttpStatus.OK
-                    serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
+                        serverHttpResponse.statusCode = HttpStatus.OK
+                        serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
 
-                    val dataBuffer: DataBuffer = DefaultDataBufferFactory().wrap(
-                        userSessionAccessToken.toByteArray(StandardCharsets.UTF_8))
+                        val dataBuffer: DataBuffer = DefaultDataBufferFactory().wrap(
+                            userSessionAccessToken.toByteArray(StandardCharsets.UTF_8))
 
-                    serverHttpResponse.headers.accessControlAllowOrigin = "http://127.0.0.1:3004"
-                    serverHttpResponse.headers.accessControlAllowCredentials = true
+                        serverHttpResponse.writeWith(Mono.just(dataBuffer))
+                    } else {
+                        serverHttpResponse.statusCode = HttpStatus.FORBIDDEN
+                        serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
 
-                    serverHttpResponse.writeWith(Mono.just(dataBuffer))
-                } else {
-                    serverHttpResponse.statusCode = HttpStatus.FORBIDDEN
-                    serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
-
-                    serverHttpResponse.writeWith(Mono.empty())
+                        serverHttpResponse.writeWith(Mono.empty())
+                    }
                 }
             } else {
                 chain.filter(exchange)

@@ -2,8 +2,6 @@ import java.util.Properties
 import java.io.FileInputStream
 
 plugins {
-//    id("io.spring.dependency-management")
-//    id("org.jetbrains.kotlin.plugin.spring")
     kotlin("jvm")
     id("java-library")
     id("maven-publish")
@@ -12,7 +10,11 @@ plugins {
 java {
     withJavadocJar()
     withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
+
+version = "0.0.3"
 
 publishing {
     publications {
@@ -21,7 +23,7 @@ publishing {
         }
     }
 
-    val nexusPropertiesFile = file("nexus.properties")
+    val nexusPropertiesFile = file("../nexus.properties")
     var nexusUsername = ""
     var nexusPassword = ""
 
@@ -37,7 +39,7 @@ publishing {
         mavenLocal()
         maven {
             isAllowInsecureProtocol = true
-            url = uri("http://192.168.0.31:8282/repository/core-libraries/")
+            url = uri("http://192.168.0.31:8282/repository/maven-releases/")
             credentials {
                 username = nexusUsername
                 password = nexusPassword
@@ -50,6 +52,7 @@ dependencies {
     api(platform(project(":spring-bff-authorization-dependencies")))
 
     implementation("org.springframework:spring-webflux")
+    implementation("org.springframework:spring-jdbc")
 
     api("org.springframework.security:spring-security-config")
     api("org.springframework.security:spring-security-web")
@@ -68,9 +71,6 @@ dependencies {
     api("io.projectreactor:reactor-core:3.5.1")
 
     implementation("org.springframework.security:spring-security-oauth2-authorization-server:1.0.0")
-//    implementation("org.springframework:spring-jdbc")
-
-    implementation("org.springframework:spring-jdbc")
 
     api("jakarta.servlet:jakarta.servlet-api")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")

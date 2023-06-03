@@ -19,13 +19,13 @@ import reactor.core.publisher.Mono
 
 /**
  * Implementations of this interface are responsible for the management
- * of [bff user sessions][OAuth2TokenService].
+ * of [bff user sessions][SessionOAuth2TokenService].
  *
  * @since 0.0.1
- * @see OAuth2TokenService
+ * @see SessionOAuth2TokenService
  */
-interface OAuth2TokenService {
+interface SessionOAuth2TokenService {
     fun introspectToken(token: String): Mono<LinkedHashMap<*,*>>
 
-    fun getAccessTokenWithRefresh(refreshToken: String): Mono<LinkedHashMap<*,*>>
+    fun refreshSessionAccessToken(sessionId: String): Mono<String>
 }

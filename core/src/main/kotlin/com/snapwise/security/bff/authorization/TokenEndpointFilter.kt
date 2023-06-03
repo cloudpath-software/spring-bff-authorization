@@ -70,11 +70,11 @@ import java.util.*
  *
  *
  * By default, this `Filter` responds to authorization grant requests
- * at the `URI` `/bff/oauth2/bff-token` and `HttpMethod` `POST`.
+ * at the `URI` `/oauth2/bff-token` and `HttpMethod` `POST`.
  *
  *
  *
- * The default endpoint `URI` `/bff/oauth2/bff-token` may be overridden
+ * The default endpoint `URI` `/oauth2/bff-token` may be overridden
  * via the constructor [.TokenEndpointFilter].
  *
  * @since 0.0.1
@@ -259,7 +259,7 @@ class TokenEndpointFilter @JvmOverloads constructor(
         /**
          * The default endpoint `URI` for access token requests.
          */
-        const val DEFAULT_TOKEN_ENDPOINT_URI = "/bff/oauth2/token"
+        const val DEFAULT_TOKEN_ENDPOINT_URI = "/oauth2/token"
         private const val DEFAULT_ERROR_URI =
             "https://datatracker.ietf.org/doc/html/draft-bertocci-oauth2-tmi-bff-01#section-4.3.1"
 

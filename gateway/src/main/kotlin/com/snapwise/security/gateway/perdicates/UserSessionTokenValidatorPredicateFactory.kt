@@ -19,7 +19,7 @@
 package com.snapwise.security.gateway.perdicates
 
 import com.snapwise.security.bff.authorization.UserSessionService
-import com.snapwise.security.bff.authorization.oauth2.services.OAuth2TokenService
+import com.snapwise.security.bff.authorization.oauth2.services.SessionOAuth2TokenService
 import com.snapwise.security.bff.authorization.web.BffAuthorizationCookieRepository
 import jakarta.validation.constraints.NotEmpty
 import org.slf4j.LoggerFactory
@@ -41,7 +41,7 @@ import java.util.function.Predicate
 
 @Deprecated(message = "Kept only temporarily, refresh access token logic was moved to UserSessionGatewayFilterFactory")
 class UserSessionTokenValidatorPredicateFactory(
-    private val oAuth2TokenService: OAuth2TokenService,
+    private val sessionOAuth2TokenService: SessionOAuth2TokenService,
     private val userSessionService: UserSessionService
 ): AbstractRoutePredicateFactory<UserSessionTokenValidatorPredicateFactory.Config>(Config::class.java) {
 
@@ -57,7 +57,7 @@ class UserSessionTokenValidatorPredicateFactory(
             }
 
             val userSessionId: String = cookies.first().value
-            val userSession = userSessionService.findBySessionId(userSessionId)
+            val userSession = userSessionService.findById(userSessionId).block()
 
             if(userSession != null) {
                 logger.info("validating tokens for session id: ${userSession.sessionId}")
@@ -66,7 +66,7 @@ class UserSessionTokenValidatorPredicateFactory(
 
                 logger.info("introspecting accessToken")
 
-                oAuth2TokenService.introspectToken(accessToken).flatMap { accessTokenMap ->
+                sessionOAuth2TokenService.introspectToken(accessToken).flatMap { accessTokenMap ->
                     logger.info("introspected accessToken -> $accessTokenMap")
 
                     val isAccessTokenActive = accessTokenMap["active"] as Boolean
@@ -78,7 +78,7 @@ class UserSessionTokenValidatorPredicateFactory(
 
                         logger.info("introspecting refreshToken")
 
-                        oAuth2TokenService.introspectToken(refreshToken).flatMap { refreshTokenMap ->
+                        sessionOAuth2TokenService.introspectToken(refreshToken).flatMap { refreshTokenMap ->
                             logger.info("introspected refreshToken -> $refreshTokenMap")
 
                             val isRefreshTokenActive = refreshTokenMap["active"] as Boolean

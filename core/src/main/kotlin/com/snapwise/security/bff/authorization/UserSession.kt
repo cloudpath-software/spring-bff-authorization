@@ -83,6 +83,7 @@ data class UserSession(
      * @return the access token value
      */
     val refreshToken: String,
+    val additionalParams: Map<String, Any>
 ): Serializable {
 
     private val tokens: MutableMap<Class<OAuth2Token>, OAuth2Authorization.Token<OAuth2Token>> = mutableMapOf()
@@ -118,6 +119,7 @@ data class UserSession(
         private var scopes: Set<String> = emptySet()
         private var accessToken: String? = null
         private var refreshToken: String? = null
+        private var additionalParams: MutableMap<String, String> = mutableMapOf()
 
         /**
          * Sets the identifier for the user session.
@@ -186,6 +188,17 @@ data class UserSession(
         }
 
         /**
+         * Sets the [refresh token][OAuth2RefreshToken].
+         *
+         * @param refreshToken the user session refresh token value.
+         * @return the [Builder]
+         */
+        fun additionalParams(additionalParams: Map<String, String>): Builder {
+            this.additionalParams.putAll(additionalParams)
+            return this
+        }
+
+        /**
          * Builds a new [UserSession].
          *
          * @return the [UserSession]
@@ -199,7 +212,8 @@ data class UserSession(
                 resource = this.resource!!,
                 scopes = this.scopes,
                 accessToken = this.accessToken!!,
-                refreshToken = this.refreshToken!!
+                refreshToken = this.refreshToken!!,
+                additionalParams = this.additionalParams
             )
         }
 

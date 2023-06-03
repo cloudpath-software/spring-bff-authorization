@@ -15,6 +15,8 @@
  */
 package com.snapwise.security.bff.authorization
 
+import reactor.core.publisher.Mono
+
 /**
  * Implementations of this interface are responsible for the management
  * of [bff user sessions][UserSession].
@@ -44,7 +46,7 @@ interface UserSessionService {
      * @param id the user session identifier
      * @return the [UserSession] if found, otherwise `null`
      */
-    fun findBySessionId(sessionId: String): UserSession?
+    fun findById(id: String): Mono<UserSession?>
 
     /**
      * Returns the [UserSession] identified by the provided `id`,

@@ -20,7 +20,7 @@ package com.snapwise.security.gateway.filters
 
 import com.snapwise.security.bff.authorization.UserSession
 import com.snapwise.security.bff.authorization.UserSessionService
-import com.snapwise.security.bff.authorization.oauth2.services.OAuth2TokenService
+import com.snapwise.security.bff.authorization.oauth2.services.SessionOAuth2TokenService
 import com.snapwise.security.bff.authorization.web.BffAuthorizationCookieRepository
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.gateway.filter.GatewayFilter
@@ -32,7 +32,7 @@ import org.springframework.web.server.ServerWebExchange
 import reactor.core.publisher.Mono
 
 class UserSessionGatewayFilterFactory(
-    private val oAuth2TokenService: OAuth2TokenService,
+    private val sessionOAuth2TokenService: SessionOAuth2TokenService,
     private val userSessionService: UserSessionService,
 ): AbstractGatewayFilterFactory<UserSessionGatewayFilterFactory.Config>(Config::class.java) {
 
@@ -41,37 +41,42 @@ class UserSessionGatewayFilterFactory(
         return object : GatewayFilter {
             override fun filter(exchange: ServerWebExchange, chain: GatewayFilterChain): Mono<Void> {
                 val request = exchange.request
+
+                if(request.headers.containsKey("Authorization")) {
+                    return chain.filter(exchange)
+                }
+
                 val userSessionCookie = request.cookies[config.getCookieName()]?.first()
                     ?: return chain.filter(exchange)
 
-                val userSession = userSessionService.findBySessionId(userSessionCookie.value)
-                return if(userSession != null) {
-                    validateSessionAccessToken(userSession).flatMap { isAccessTokenValid ->
-                        if(isAccessTokenValid) {
-                            val accessToken = userSession.accessToken
+                return userSessionService.findById(userSessionCookie.value).flatMap { userSession ->
+                    if(userSession != null) {
+                        getActiveSessionAccessToken(userSession).flatMap { activeAccessToken ->
+                            if (activeAccessToken != null) {
 
-                            logger.info("session id -> ${userSession.sessionId}, added bearer authorization header")
+                                logger.info("session id -> ${userSession.sessionId}, added bearer authorization header")
 
-                            val modifiedExchange = exchange.mutate().request { request ->
-                                request.headers {
-                                    it.remove("Cookie")
-                                    it.setBearerAuth(accessToken)
-                                }
-                            }.build()
+                                val modifiedExchange = exchange.mutate().request { request ->
+                                    request.headers {
+                                        it.remove("Cookie")
+                                        it.setBearerAuth(activeAccessToken)
+                                    }
+                                }.build()
 
-                            chain.filter(modifiedExchange)
-                        } else {
-                            val modifiedExchange = exchange.mutate().request { request ->
-                                request.headers {
-                                    it.remove("Cookie")
-                                }
-                            }.build()
+                                chain.filter(modifiedExchange)
+                            } else {
+                                val modifiedExchange = exchange.mutate().request { request ->
+                                    request.headers {
+                                        it.remove("Cookie")
+                                    }
+                                }.build()
 
-                            chain.filter(modifiedExchange)
+                                chain.filter(modifiedExchange)
+                            }
                         }
+                    }  else {
+                        chain.filter(exchange)
                     }
-                } else {
-                    chain.filter(exchange)
                 }
             }
 
@@ -86,14 +91,16 @@ class UserSessionGatewayFilterFactory(
      *  an attempt to refresh it using the refresh token will execute, if that fails, the
      *  user is expected to be redirected to the authorization screen to re-login.
      */
-    private fun validateSessionAccessToken(userSession: UserSession): Mono<Boolean> {
-        logger.info("validating tokens for session id: ${userSession.sessionId}")
+    private fun getActiveSessionAccessToken(userSession: UserSession): Mono<String?> {
 
+        val sessionId = userSession.sessionId
         val accessToken = userSession.accessToken
+
+        logger.info("validating tokens for session id: $sessionId")
 
         logger.info("introspecting accessToken")
 
-        return oAuth2TokenService.introspectToken(accessToken).flatMap { accessTokenMap ->
+        return sessionOAuth2TokenService.introspectToken(accessToken).flatMap { accessTokenMap ->
             logger.info("introspected accessToken -> $accessTokenMap")
 
             val isAccessTokenActive = accessTokenMap["active"] as Boolean
@@ -105,18 +112,28 @@ class UserSessionGatewayFilterFactory(
 
                 logger.info("introspecting refreshToken")
 
-                oAuth2TokenService.introspectToken(refreshToken).flatMap { refreshTokenMap ->
+                sessionOAuth2TokenService.introspectToken(refreshToken).flatMap { refreshTokenMap ->
                     logger.info("introspected refreshToken -> $refreshTokenMap")
 
                     val isRefreshTokenActive = refreshTokenMap["active"] as Boolean
 
                     logger.info("refreshToken isActive: $isRefreshTokenActive")
 
+                    if(isRefreshTokenActive) {
+                        logger.info("attempting to refresh access token...")
 
-                    Mono.just(false)
+                        sessionOAuth2TokenService.refreshSessionAccessToken(sessionId).flatMap { refreshedAccessToken ->
+
+                            logger.info("access token successfully refreshed")
+
+                            Mono.just(refreshedAccessToken)
+                        }
+                    } else {
+                        Mono.empty()
+                    }
                 }
             } else {
-                Mono.just(isAccessTokenActive)
+                Mono.just(accessToken)
             }
         }
     }

@@ -20,7 +20,7 @@ import java.util.*
  */
 class BffReactiveAuthorizationCookieRepository: ReactiveUserSessionTokenRepository {
     companion object {
-        private const val DEFAULT_USER_SESSION_TOKEN_COOKIE_NAME = "US-TOKEN"
+        private const val DEFAULT_USER_SESSION_TOKEN_COOKIE_NAME = "cloud.session.token"
         private const val DEFAULT_BFF_UST_PARAMETER_NAME = "_ust"
         private const val DEFAULT_USER_SESSION_TOKEN_HEADER_NAME = "X-US-TOKEN"
         private val USER_SESSION_TOKEN_REMOVED_ATTRIBUTE_NAME = "${Companion::class.java.name}.REMOVED"

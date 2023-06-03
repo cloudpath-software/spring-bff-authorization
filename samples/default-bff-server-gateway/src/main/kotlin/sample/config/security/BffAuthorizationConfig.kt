@@ -21,7 +21,6 @@ package sample.config.security
 import com.snapwise.bffauthorizationspa.annotation.reactive.configuration.SpaServerHttpSecurityConfiguration
 import com.snapwise.security.bff.authorization.JdbcUserSessionService
 import com.snapwise.security.bff.authorization.UserSessionService
-import com.snapwise.security.bff.authorization.config.annotation.reactive.configuration.BffServerHttpSecurityConfiguration
 import com.snapwise.security.bff.authorization.settings.BffAuthorizationSettings
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

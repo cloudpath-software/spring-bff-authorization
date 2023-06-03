@@ -5,14 +5,14 @@ import com.snapwise.security.gateway.filters.UserSessionGatewayFilterFactory
 import com.snapwise.security.gateway.perdicates.UserSessionTokenValidatorPredicateFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import sample.services.oauth2.OAuth2TokenRestService
+import sample.services.oauth2.SessionOAuth2TokenRestService
 
 @Configuration
 class GatewayConfig {
 
     @Bean
     fun userSessionCookiePredicateFactory(
-        oAuth2TokenRestService: OAuth2TokenRestService,
+        oAuth2TokenRestService: SessionOAuth2TokenRestService,
         userSessionService: UserSessionService
     ): UserSessionTokenValidatorPredicateFactory {
         return UserSessionTokenValidatorPredicateFactory(oAuth2TokenRestService, userSessionService)
@@ -21,7 +21,7 @@ class GatewayConfig {
     @Bean
     fun userSessionHeaderFilterFactory(
         userSessionService: UserSessionService,
-        oAuth2TokenRestService: OAuth2TokenRestService
+        oAuth2TokenRestService: SessionOAuth2TokenRestService
     ): UserSessionGatewayFilterFactory {
         return UserSessionGatewayFilterFactory(oAuth2TokenRestService, userSessionService)
     }

@@ -27,10 +27,10 @@ import com.snapwise.security.bff.authorization.web.BffAuthorizationCookieReposit
 import org.apache.commons.logging.LogFactory
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DefaultDataBufferFactory
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.ReactiveAuthenticationManagerResolver
-import org.springframework.security.oauth2.core.OAuth2AccessToken
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.core.OAuth2Error
 import org.springframework.security.web.server.ServerAuthenticationEntryPoint
@@ -56,7 +56,7 @@ class SessionInfoWebFilter(
     private val objectMapper = ObjectMapper()
 
     private val endpointMatcher: ServerWebExchangeMatcher =
-        PathPatternParserServerWebExchangeMatcher(endpointUri)
+        PathPatternParserServerWebExchangeMatcher(endpointUri, HttpMethod.GET)
 
     private var authenticationEntryPoint: ServerAuthenticationEntryPoint = HttpBasicServerAuthenticationEntryPoint()
 
@@ -83,44 +83,60 @@ class SessionInfoWebFilter(
                     serverHttpRequest,
                     BffAuthorizationCookieRepository.DEFAULT_USER_SESSION_TOKEN_COOKIE_NAME
                 )
-                val userSession = userSessionCookie?.let { userSessionService.findBySessionId(it.value) }
 
-                if (userSession != null) {
-                    val accessTokenJwt = JWTParser.parse(userSession.accessToken)
-                    val accessTokenJwtClaims = accessTokenJwt.jwtClaimsSet
-
-                    val sub = accessTokenJwtClaims.subject
-                    val givenName = accessTokenJwtClaims.getClaim("given_name") as String?
-                    val lastName = accessTokenJwtClaims.getClaim("last_name") as String?
-                    val email = accessTokenJwtClaims.getClaim("email") as String?
-                    val preferredUsername = accessTokenJwtClaims.getClaim("preferred_username") as String?
-                    val iss = accessTokenJwtClaims.issuer
-                    val authTime = accessTokenJwtClaims.issueTime.time
-                    val exp = accessTokenJwtClaims.expirationTime.time
-
-                    val userSessionInfo = UserSessionInfo(
-                        sub = sub,
-                        givenName = givenName ?: "",
-                        familyName = lastName ?: "",
-                        emailVerified = email ?: "",
-                        preferredUsername = preferredUsername ?: "",
-                        iss = iss,
-                        authTime = authTime,
-                        exp = exp
-                    )
-
-                    val bytes = objectMapper.writeValueAsBytes(userSessionInfo)
-                    val dataBuffer: DataBuffer = DefaultDataBufferFactory().wrap(bytes)
-
-                    serverHttpResponse.headers.accessControlAllowOrigin = "http://127.0.0.1:3004"
-                    serverHttpResponse.headers.accessControlAllowCredentials = true
-
-                    serverHttpResponse.writeWith(Mono.just(dataBuffer))
-                } else {
+                if(userSessionCookie == null) {
                     serverHttpResponse.statusCode = HttpStatus.FORBIDDEN
                     serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
 
-                    serverHttpResponse.writeWith(Mono.empty())
+                    return@flatMap serverHttpResponse.writeWith(Mono.empty())
+                }
+
+                userSessionService.findById(userSessionCookie.value).flatMap { userSession ->
+                    if (userSession != null) {
+                        val accessTokenJwt = JWTParser.parse(userSession.accessToken)
+                        val accessTokenJwtClaims = accessTokenJwt.jwtClaimsSet
+
+                        val additionalParams = userSession.additionalParams
+
+                        val sub = accessTokenJwtClaims.subject
+                        val givenName = additionalParams["given_name"] as String?
+                        val lastName = additionalParams["family_name"] as String?
+                        val emailVerified = additionalParams["email_verified"] as String?
+                        val preferredUsername = additionalParams["preferred_username"] as String?
+                        val iss = accessTokenJwtClaims.issuer
+                        val authTime = accessTokenJwtClaims.issueTime.time
+                        val exp = accessTokenJwtClaims.expirationTime.time
+
+                        if(Instant.now().isAfter(Instant.ofEpochSecond(exp))) {
+                            userSessionService.remove(userSession)
+
+                            serverHttpResponse.statusCode = HttpStatus.FORBIDDEN
+                            serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
+
+                            serverHttpResponse.writeWith(Mono.empty())
+                        } else {
+                            val userSessionInfo = UserSessionInfo(
+                                sub = sub,
+                                givenName = givenName ?: "",
+                                familyName = lastName ?: "",
+                                emailVerified = emailVerified ?: "",
+                                preferredUsername = preferredUsername ?: "",
+                                iss = iss,
+                                authTime = authTime,
+                                exp = exp
+                            )
+
+                            val bytes = objectMapper.writeValueAsBytes(userSessionInfo)
+                            val dataBuffer: DataBuffer = DefaultDataBufferFactory().wrap(bytes)
+
+                            serverHttpResponse.writeWith(Mono.just(dataBuffer))
+                        }
+                    } else {
+                        serverHttpResponse.statusCode = HttpStatus.FORBIDDEN
+                        serverHttpResponse.headers.contentType = MediaType.APPLICATION_JSON
+
+                        serverHttpResponse.writeWith(Mono.empty())
+                    }
                 }
             } else {
                 chain.filter(exchange)

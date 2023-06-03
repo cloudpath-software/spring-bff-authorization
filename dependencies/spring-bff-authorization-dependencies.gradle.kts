@@ -15,7 +15,7 @@ publishing {
         }
     }
 
-    val nexusPropertiesFile = file("nexus.properties")
+    val nexusPropertiesFile = file("../nexus.properties")
     var nexusUsername = ""
     var nexusPassword = ""
 
@@ -31,7 +31,7 @@ publishing {
         mavenLocal()
         maven {
             isAllowInsecureProtocol = true
-            url = uri("http://192.168.0.31:8282/repository/core-libraries/")
+            url = uri("http://192.168.0.31:8282/repository/maven-releases/")
             credentials {
                 username = nexusUsername
                 password = nexusPassword

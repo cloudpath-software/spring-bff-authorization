@@ -35,28 +35,28 @@ import com.snapwise.security.bff.authorization.server.SessionInfoWebFilter
 class BffAuthorizationSettings(override val settings: Map<String, Any> = mapOf()) : AbstractSettings(settings) {
     val tokenEndpoint: String
         /**
-         * Returns the bff token endpoint. The default is `/bff/oauth2/bff-token`.
+         * Returns the bff token endpoint. The default is `/oauth2/bff-token`.
          *
          * @return the token endpoint
          */
         get() = getSetting(ConfigurationSettingNames.BffAuthorization.TOKEN_ENDPOINT)
     val sessionAccessTokenEndpoint: String
         /**
-         * Returns the bff session info endpoint. The default is `/bff/oauth2/session-access-token`.
+         * Returns the bff session info endpoint. The default is `/oauth2/session-access-token`.
          *
          * @return the SessionInfo endpoint
          */
         get() = getSetting(ConfigurationSettingNames.BffAuthorization.SESSION_ACCESS_TOKEN_ENDPOINT)
     val sessionInfoEndpoint: String
         /**
-         * Returns the bff session info endpoint. The default is `/bff/oauth2/session-info`.
+         * Returns the bff session info endpoint. The default is `/oauth2/session-info`.
          *
          * @return the SessionInfo endpoint
          */
         get() = getSetting(ConfigurationSettingNames.BffAuthorization.SESSION_INFO_ENDPOINT)
     val sessionEndEndpoint: String
         /**
-         * Returns the bff session end endpoint. The default is `/bff/oauth2/session-end`.
+         * Returns the bff session end endpoint. The default is `/oauth2/session-end`.
          *
          * @return the SessionEnd endpoint
          */

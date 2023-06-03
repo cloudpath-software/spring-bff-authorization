@@ -28,6 +28,7 @@ import org.springframework.security.jackson2.SecurityJackson2Modules
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization
 import org.springframework.util.Assert
 import org.springframework.util.StringUtils
+import reactor.core.publisher.Mono
 import java.nio.charset.StandardCharsets
 import java.sql.*
 import java.util.*
@@ -69,12 +70,13 @@ class JdbcUserSessionService(
     }
 
     override fun save(userSession: UserSession) {
-        val existingAuthorization: UserSession? = findBySessionId(userSession.sessionId)
-        if (existingAuthorization == null) {
-            insertUserSession(userSession)
-        } else {
-            updateAuthorization(userSession)
-        }
+        findById(userSession.sessionId).map { existingAuthorization ->
+            if (existingAuthorization == null) {
+                insertUserSession(userSession)
+            } else {
+                updateAuthorization(userSession)
+            }
+        }.subscribe()
     }
 
     private fun updateAuthorization(userSession: UserSession) {
@@ -109,10 +111,12 @@ class JdbcUserSessionService(
         jdbcOperations.update(REMOVE_USER_SESSION_SQL, pss)
     }
 
-    override fun findBySessionId(id: String): UserSession? {
-        val parameters: MutableList<SqlParameterValue> = mutableListOf()
-        parameters.add(SqlParameterValue(Types.VARCHAR, id))
-        return findBy(PK_FILTER, parameters)
+    override fun findById(id: String): Mono<UserSession?> {
+        return Mono.fromCallable {
+            val parameters: MutableList<SqlParameterValue> = mutableListOf()
+            parameters.add(SqlParameterValue(Types.VARCHAR, id))
+            findBy(PK_FILTER, parameters)
+        }
     }
 
     override fun findBy(userId: String, resource: String, scopes: Set<String>): UserSession? {
